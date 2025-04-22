@@ -1,0 +1,33 @@
+/* Footer styling */
+footer {
+  width: 100%;
+  background-color: #4a90e2; /* The blue color shown in your image */
+  color: white;
+  padding: 20px 0;
+  position: relative; /* Change from fixed/absolute to relative */
+  bottom: auto; /* Remove any bottom positioning */
+  margin-top: 40px; /* Add some space between content and footer */
+}
+
+/* If you have a main content container, make sure it has min-height */
+.main-content {
+  min-height: calc(100vh - 150px); /* Adjust based on your header height */
+}
+
+/* For pages where you don't want the footer to show (like signup) */
+.signup-page footer,
+.login-page footer {
+  display: none; /* Hide footer on specific pages */
+}
+
+/* Alternative approach: Use a class to control footer visibility */
+.hide-footer footer {
+  display: none;
+}
+.site-footer {
+  background-color: #4a90e2;
+  color: white;
+  padding: 2rem 0;
+  width: 100%;
+  position: relative; /* Not fixed, so it stays in document flow */
+}
