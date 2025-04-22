@@ -1,3 +1,4 @@
+// server.js - Updated version
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -5,15 +6,25 @@ require("dotenv").config();
 
 const app = express();
 
-// Middleware
+// Enhanced middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // Add this for form data
 
-// MongoDB Connection
+// MongoDB Connection with improved options
 mongoose
-  .connect("mongodb://127.0.0.1:27017/medical-records")
-  .then(() => console.log("MongoDB Connected"))
+  .connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("MongoDB Connected Successfully"))
   .catch((err) => console.log("MongoDB Connection Error:", err));
+
+// Add logging middleware to debug requests
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
 
 // Routes
 app.use("/api/records", require("./src/routes/records"));
