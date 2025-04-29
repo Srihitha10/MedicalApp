@@ -4,26 +4,21 @@ const userSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
+    unique: true
+  },
+  password: {
+    type: String,
+    required: true
   },
   email: {
     type: String,
     required: true,
-    unique: true,
-  },
-  walletAddress: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  role: {
-    type: String,
-    enum: ["patient", "doctor", "admin"],
-    default: "patient",
+    unique: true
   },
   createdAt: {
     type: Date,
-    default: Date.now,
-  },
+    default: Date.now
+  }
 });
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.model("User", userSchema)

@@ -12,6 +12,8 @@ import {
   Database,
 } from "lucide-react";
 import "./UploadRecordsPage.css";
+import { saveRecord } from "../services/apiService";
+import { useAuth } from "../contexts/AuthContext";
 
 const UploadRecordsPage = () => {
   const [file, setFile] = useState(null);
@@ -24,7 +26,9 @@ const UploadRecordsPage = () => {
   const [error, setError] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [doctorName, setDoctorName] = useState("");
 
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
 
   const handleFileChange = (e) => {
@@ -92,50 +96,50 @@ const UploadRecordsPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!file) return;
 
-    if (!file) {
-      setError("Please select a file to upload");
-      return;
-    }
-
-    if (!recordType) {
-      setError("Please select a record type");
-      return;
-    }
-
-    // Reset error state
+    setIsUploading(true);
     setError("");
 
-    // Start upload simulation
-    setIsUploading(true);
+    try {
+      const recordData = {
+        fileName: fileName,
+        recordType: recordType,
+        doctorName: doctorName || "Unknown",
+        date: new Date().toISOString(),
+        description: description,
+        fileSize: file.size,
+        patientId: currentUser?._id || "default_id", // Add fallback ID
+      };
 
-    // Simulate progress with variable speeds to make it more realistic
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
+      console.log("Submitting record:", recordData); // Debug log
+      const savedRecord = await saveRecord(recordData);
+      console.log("Record saved:", savedRecord); // Debug log
 
-        // Random increment between 3-8 to make progress feel more realistic
-        const increment = Math.floor(Math.random() * 6) + 3;
-        const newProgress = prev + increment;
-        return newProgress > 100 ? 100 : newProgress;
-      });
-    }, 200);
+      // Show progress
+      const interval = setInterval(() => {
+        setUploadProgress((prev) => {
+          const increment = Math.floor(Math.random() * 6) + 3;
+          return prev + increment > 100 ? 100 : prev + increment;
+        });
+      }, 200);
 
-    // Simulate file encryption and IPFS upload
-    setTimeout(() => {
-      clearInterval(interval);
-      setUploadProgress(100);
-      setIsUploading(false);
-      setUploadSuccess(true);
-
-      // Reset form after 2 seconds and redirect
+      // Simulate completion
       setTimeout(() => {
-        navigate("/medical-records");
-      }, 2000);
-    }, 3000);
+        clearInterval(interval);
+        setUploadProgress(100);
+        setIsUploading(false);
+        setUploadSuccess(true);
+
+        // Navigate after success
+        setTimeout(() => {
+          navigate("/medical-records");
+        }, 2000);
+      }, 3000);
+    } catch (error) {
+      setError("Failed to upload record. Please try again.");
+      setIsUploading(false);
+    }
   };
 
   // Add file type icons based on extension
@@ -237,6 +241,20 @@ const UploadRecordsPage = () => {
                     <option value="other">Other</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="doctorName">
+                  Doctor Name
+                </label>
+                <input
+                  type="text"
+                  id="doctorName"
+                  className="form-input"
+                  value={doctorName}
+                  onChange={(e) => setDoctorName(e.target.value)}
+                  placeholder="Enter doctor's name"
+                />
               </div>
 
               <div className="form-group">

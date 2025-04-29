@@ -2,6 +2,33 @@
 const simulateApiDelay = () =>
   new Promise((resolve) => setTimeout(resolve, 500));
 
+const API_BASE_URL = "http://localhost:5000/api"; // Your backend URL
+
+export const saveRecord = async (recordData) => {
+  try {
+    console.log("Sending record data:", recordData); // Debug log
+    const response = await fetch(`${API_BASE_URL}/records`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(recordData),
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("Server response:", data); // Debug log
+    return data;
+  } catch (error) {
+    console.error("Error saving record:", error);
+    throw error;
+  }
+};
+
 // Auth Service Methods
 const auth = {
   // Login user

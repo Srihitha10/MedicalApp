@@ -3,8 +3,12 @@ const mongoose = require("mongoose");
 const medicalRecordSchema = new mongoose.Schema({
   ipfsHash: {
     type: String,
-    required: true,
-    unique: true,
+    default: function () {
+      // Generate a unique placeholder hash based on timestamp and random string
+      return `ipfs_${Date.now()}_${Math.random()
+        .toString(36)
+        .substring(2, 15)}`;
+    },
   },
   fileName: {
     type: String,
@@ -13,21 +17,16 @@ const medicalRecordSchema = new mongoose.Schema({
   recordType: {
     type: String,
     required: true,
-    enum: [
-      "lab-result",
-      "prescription",
-      "imaging",
-      "clinical-notes",
-      "discharge-summary",
-      "vaccination",
-      "other",
-    ],
   },
   doctorName: String,
-  date: Date,
+  description: String,
+  date: {
+    type: Date,
+    default: Date.now,
+  },
+  fileSize: Number,
   patientId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    type: String,
     required: true,
   },
   createdAt: {

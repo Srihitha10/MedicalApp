@@ -115,24 +115,36 @@ const Signup = () => {
       setIsLoading(true);
 
       try {
-        // Simulate API call delay
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        // Send data to the backend API
+        const response = await fetch("http://localhost:5000/api/users", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: formData.fullName,
+            email: formData.email,
+            password: formData.password,
+          }),
+        });
 
-        // Store user data
-        const userData = {
-          fullName: formData.fullName,
-          email: formData.email,
-          isAuthenticated: true,
-        };
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Registration failed");
+        }
 
+        const userData = await response.json();
+
+        // Store user data in localStorage
         localStorage.setItem("user", JSON.stringify(userData));
         localStorage.setItem("isAuthenticated", "true");
 
         // Navigate directly to dashboard after signup
         navigate("/dashboard", { replace: true });
       } catch (error) {
+        console.error("Registration error:", error);
         setFormErrors({
-          submit: "Registration failed. Please try again.",
+          submit: error.message || "Registration failed. Please try again.",
         });
       } finally {
         setIsLoading(false);
