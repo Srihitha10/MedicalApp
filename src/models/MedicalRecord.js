@@ -1,15 +1,18 @@
 const mongoose = require("mongoose");
 
 const medicalRecordSchema = new mongoose.Schema({
+  // IPFS related fields (required for blockchain integration)
   ipfsHash: {
     type: String,
-    default: function () {
-      // Generate a unique placeholder hash based on timestamp and random string
-      return `ipfs_${Date.now()}_${Math.random()
-        .toString(36)
-        .substring(2, 15)}`;
-    },
+    required: true,
+    unique: true,
   },
+  ipfsUrl: {
+    type: String,
+    required: true,
+  },
+
+  // Core fields you specifically need
   fileName: {
     type: String,
     required: true,
@@ -18,16 +21,25 @@ const medicalRecordSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  doctorName: String,
-  description: String,
-  date: {
-    type: Date,
-    default: Date.now,
+  doctorName: {
+    type: String,
+    required: true,
   },
+  description: String,
+
+  // File metadata (needed for display and verification)
   fileSize: Number,
+
+  // Required for associating records with patients
   patientId: {
     type: String,
     required: true,
+  },
+
+  // Timestamps
+  date: {
+    type: Date,
+    default: Date.now,
   },
   createdAt: {
     type: Date,

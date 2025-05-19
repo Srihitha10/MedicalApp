@@ -64,6 +64,7 @@ mongoose
 // API Routes
 app.use("/api/records", require("./src/routes/records"));
 app.use("/api/users", require("./src/routes/users"));
+app.use("/api/ipfs", require("./src/routes/ipfs")); // Add the IPFS route
 
 // Test route to verify server is working
 app.get("/", (req, res) => {

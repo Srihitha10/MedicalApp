@@ -14,6 +14,7 @@ import {
 import "./UploadRecordsPage.css";
 import { saveRecord } from "../services/apiService";
 import { useAuth } from "../contexts/AuthContext";
+import { uploadToIPFS } from "../controllers/ipfsController"; // Add this line
 
 const UploadRecordsPage = () => {
   const [file, setFile] = useState(null);
@@ -96,25 +97,39 @@ const UploadRecordsPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!file) return;
+    if (!file) {
+      setError("Please select a file to upload");
+      return;
+    }
 
     setIsUploading(true);
     setError("");
 
     try {
+      console.log("Starting upload process..."); // Debug log
+
+      // Upload file to IPFS
+      const fileHash = await uploadToIPFS(file, {
+        fileName,
+        recordType,
+        doctorName,
+        description,
+      });
+
+      // Create record data
       const recordData = {
-        fileName: fileName,
-        recordType: recordType,
+        fileName,
+        recordType,
         doctorName: doctorName || "Unknown",
-        date: new Date().toISOString(),
-        description: description,
+        description,
         fileSize: file.size,
-        patientId: currentUser?._id || "default_id", // Add fallback ID
+        ipfsHash: fileHash,
+        patientId: currentUser?._id || "default_id",
+        uploadDate: new Date().toISOString(),
       };
 
-      console.log("Submitting record:", recordData); // Debug log
-      const savedRecord = await saveRecord(recordData);
-      console.log("Record saved:", savedRecord); // Debug log
+      // Save record to database
+      await saveRecord(recordData);
 
       // Show progress
       const interval = setInterval(() => {
@@ -137,7 +152,8 @@ const UploadRecordsPage = () => {
         }, 2000);
       }, 3000);
     } catch (error) {
-      setError("Failed to upload record. Please try again.");
+      console.error("Upload error:", error); // Debug log
+      setError(error.message || "Failed to upload record. Please try again.");
       setIsUploading(false);
     }
   };

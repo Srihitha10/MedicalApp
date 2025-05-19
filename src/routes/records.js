@@ -29,21 +29,30 @@ router.get("/:patientId", async (req, res) => {
 // POST new record
 router.post("/", async (req, res) => {
   try {
+    console.log("Request body:", JSON.stringify(req.body, null, 2));
     console.log("Received record data:", req.body);
 
     if (!req.body) {
       return res.status(400).json({ error: "Request body is empty" });
     }
 
-    // Create new medical record
+    // Extract the IPFS hash from the request
+    const ipfsHash = req.body.ipfsHash;
+
+    // Generate the IPFS URL based on the hash
+    const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
+
+    // Create new medical record with IPFS data
     const record = new MedicalRecord({
       fileName: req.body.fileName || "Untitled",
       recordType: req.body.recordType || "other",
       doctorName: req.body.doctorName || "Unknown",
-      date: req.body.date || new Date(),
+      date: req.body.uploadDate || new Date(),
       description: req.body.description || "",
       fileSize: req.body.fileSize || 0,
       patientId: req.body.patientId || "default_id",
+      ipfsHash: ipfsHash, // Add this field
+      ipfsUrl: ipfsUrl, // Add this field
     });
 
     // Save to database
