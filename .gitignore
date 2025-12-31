@@ -1,1 +1,19 @@
+# Virtual Environment
+ml-env/
+venv/
+env/
+
+# Node modules
 node_modules/
+
+# Environment variables
+.env
+.env.local
+
+# Temp files
+temp/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -28,6 +28,8 @@ const UploadRecordsPage = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [doctorName, setDoctorName] = useState("");
+  const [patientId, setPatientId] = useState(""); // Add for watermarking
+  const [timestamp, setTimestamp] = useState(""); // Add for watermarking
 
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -101,6 +103,10 @@ const UploadRecordsPage = () => {
       setError("Please select a file to upload");
       return;
     }
+    if (!patientId || !timestamp) {
+      setError("Patient ID and timestamp are required for watermarking");
+      return;
+    }
 
     setIsUploading(true);
     setError("");
@@ -108,23 +114,27 @@ const UploadRecordsPage = () => {
     try {
       console.log("Starting upload process..."); // Debug log
 
-      // Upload file to IPFS
-      const fileHash = await uploadToIPFS(file, {
+      // Upload file to IPFS with metadata
+      const uploadResult = await uploadToIPFS(file, {
         fileName,
         recordType,
         doctorName,
         description,
+        patientId, // Include for watermarking
+        timestamp, // Include for watermarking
       });
+      const { ipfsHash, watermarkHash } = uploadResult; // Assume controller returns both
 
-      // Create record data
+      // Create record data with watermarkHash
       const recordData = {
         fileName,
         recordType,
         doctorName: doctorName || "Unknown",
         description,
         fileSize: file.size,
-        ipfsHash: fileHash,
-        patientId: currentUser?._id || "default_id",
+        ipfsHash,
+        watermarkHash, // Add for DB storage
+        patientId: currentUser?._id || patientId, // Use input or user ID
         uploadDate: new Date().toISOString(),
       };
 
@@ -237,6 +247,35 @@ const UploadRecordsPage = () => {
 
           <form onSubmit={handleSubmit}>
             <div className="form-grid">
+              <div className="form-group">
+                <label className="form-label" htmlFor="patientId">
+                  Patient ID <span className="required">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="patientId"
+                  className="form-input"
+                  value={patientId}
+                  onChange={(e) => setPatientId(e.target.value)}
+                  placeholder="Enter patient ID"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="timestamp">
+                  Timestamp <span className="required">*</span>
+                </label>
+                <input
+                  type="datetime-local"
+                  id="timestamp"
+                  className="form-input"
+                  value={timestamp}
+                  onChange={(e) => setTimestamp(e.target.value)}
+                  required
+                />
+              </div>
+
               <div className="form-group">
                 <label className="form-label" htmlFor="recordType">
                   Record Type <span className="required">*</span>

@@ -127,9 +127,24 @@ const MedicalRecordsPage = () => {
     else return (bytes / 1048576).toFixed(1) + " MB";
   };
 
-  // Open file in IPFS gateway
-  const openInIPFS = (ipfsUrl) => {
-    window.open(ipfsUrl, "_blank");
+  // Open file in IPFS gateway with authenticity check
+  const openInIPFS = async (ipfsUrl, ipfsHash) => {
+    try {
+      const response = await fetch("/api/ipfs/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ipfsHash }),
+      });
+      const result = await response.json();
+      if (result.status === "AUTHENTIC") {
+        window.open(ipfsUrl, "_blank");
+      } else {
+        alert("Image has been tampered with and is not authentic!");
+      }
+    } catch (error) {
+      console.error("Verification failed:", error);
+      alert("Unable to verify authenticity. Please try again.");
+    }
   };
 
   return (
@@ -263,7 +278,9 @@ const MedicalRecordsPage = () => {
                     <div className="record-actions">
                       <button
                         className="view-ipfs-button"
-                        onClick={() => openInIPFS(record.ipfsUrl)}
+                        onClick={() =>
+                          openInIPFS(record.ipfsUrl, record.ipfsHash)
+                        }
                         title="View on IPFS"
                       >
                         <ExternalLink size={14} />

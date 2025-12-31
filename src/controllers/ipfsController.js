@@ -28,8 +28,11 @@ export const uploadToIPFS = async (file, metadata = {}) => {
 
     console.log("IPFS Upload successful:", response.data);
 
-    // Return the IPFS hash from the response
-    return response.data.ipfsHash;
+    // Return the IPFS hash and watermark hash from the response
+    return {
+      ipfsHash: response.data.ipfsHash,
+      watermarkHash: response.data.watermarkHash,
+    };
   } catch (error) {
     // Enhanced error logging
     console.error("IPFS Upload Error:", {

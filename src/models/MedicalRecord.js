@@ -45,6 +45,10 @@ const medicalRecordSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  watermarkHash: {
+    type: String,
+    required: true, // For authenticity checks
+  },
 });
 
 module.exports = mongoose.model("MedicalRecord", medicalRecordSchema);

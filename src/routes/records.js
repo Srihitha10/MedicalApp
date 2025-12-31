@@ -53,6 +53,7 @@ router.post("/", async (req, res) => {
       patientId: req.body.patientId || "default_id",
       ipfsHash: ipfsHash, // Add this field
       ipfsUrl: ipfsUrl, // Add this field
+      watermarkHash: req.body.watermarkHash || null, // Add watermark hash for authenticity
     });
 
     // Save to database
