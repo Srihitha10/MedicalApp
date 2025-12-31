@@ -1,0 +1,1 @@
+{"watermark_from": "patient_name+timestamp", "hash_function": "SHA256", "binary_reshape": "64x64", "upsample_to": "256x256"}
