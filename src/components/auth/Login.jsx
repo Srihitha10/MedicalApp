@@ -20,17 +20,14 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Simulate API call for login
       setTimeout(() => {
-        // Admin credentials (for demo purposes)
         const adminEmail = "admin@medsecure.com";
         const adminPassword = "admin123";
 
-        // Check if admin login
         if (isAdminLogin) {
           if (email === adminEmail && password === adminPassword) {
             const userData = {
-              _id: "admin001", // Changed from id to _id
+              _id: "admin001",
               email: email,
               displayName: "Admin",
               role: "admin",
@@ -42,9 +39,10 @@ const Login = () => {
             setError("Invalid admin credentials.");
           }
         } else {
-          // Regular user login
+          // Regular user login - USE EMAIL AS CONSISTENT ID
+          const userId = "user_" + email.replace(/[^a-z0-9]/gi, "_"); // Consistent ID based on email
           const userData = {
-            _id: "user_" + Date.now(), // Changed from id to _id
+            _id: userId,
             email: email,
             displayName: email.split("@")[0],
             role: "user",

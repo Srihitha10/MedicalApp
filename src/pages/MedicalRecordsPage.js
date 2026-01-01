@@ -45,8 +45,15 @@ const MedicalRecordsPage = () => {
       try {
         setLoading(true);
 
-        // Get user ID from multiple possible locations
+        // Get user ID from current user
         const userId = currentUser?._id || currentUser?.id;
+
+        if (!userId) {
+          console.error("No user ID found!");
+          setLoading(false);
+          setRecords([]);
+          return;
+        }
 
         console.log("Fetching records for user ID:", userId);
 
@@ -68,12 +75,13 @@ const MedicalRecordsPage = () => {
       }
     };
 
+    // Wait for auth to complete
     if (authLoading) {
       return;
     }
 
-    const userId = currentUser?._id || currentUser?.id;
-    if (!currentUser || !userId) {
+    // Check if user is logged in
+    if (!currentUser) {
       setLoading(false);
       setRecords([]);
       setError("No user session. Please login.");

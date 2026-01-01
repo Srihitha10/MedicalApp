@@ -14,6 +14,7 @@ import {
   User,
   LogOut,
   Users,
+  AlertTriangle,
 } from "lucide-react";
 import "./AdminDashboard.css";
 
@@ -80,7 +81,95 @@ const AdminDashboard = () => {
     return matchesSearch && matchesType && matchesUser;
   });
 
-  // ...existing helper functions...
+  // CRITICAL: Admin tampering function
+  const openInIPFSWithTamperOptions = async (ipfsUrl, ipfsHash, recordId) => {
+    const tamperChoice = window.confirm(
+      "🔐 ADMIN OPTIONS\n\n" +
+        "Do you want to TAMPER with this image?\n\n" +
+        "✅ Click OK to tamper (rotate/crop/modify)\n" +
+        "❌ Click Cancel to view authentic image"
+    );
+
+    if (tamperChoice) {
+      const tamperAction = window.prompt(
+        "Choose tampering action:\n\n" +
+          "1 - Rotate 90°\n" +
+          "2 - Rotate 180°\n" +
+          "3 - Adjust brightness (add noise)\n" +
+          "4 - Crop image (10% edges)\n\n" +
+          "Enter number (1-4):"
+      );
+
+      if (tamperAction >= 1 && tamperAction <= 4) {
+        try {
+          console.log(
+            `Admin tampering: IPFS=${ipfsHash}, Type=${tamperAction}`
+          );
+
+          const response = await fetch("/api/ipfs/tamper", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ipfsHash,
+              tamperType: parseInt(tamperAction),
+              recordId,
+            }),
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            alert(
+              `✅ Image tampered successfully!\n\n` +
+                `Action: ${
+                  ["", "Rotated 90°", "Rotated 180°", "Noise added", "Cropped"][
+                    tamperAction
+                  ]
+                }\n` +
+                `New IPFS Hash: ${result.newIpfsHash}\n\n` +
+                `⚠️ Users will now see this as TAMPERED when they try to view it.`
+            );
+
+            // Refresh records without full page reload
+            const recordsResponse = await fetch("/api/records");
+            const recordsData = await recordsResponse.json();
+            setRecords(recordsData);
+          } else {
+            alert("❌ Failed to tamper image: " + result.error);
+          }
+        } catch (error) {
+          console.error("Tampering failed:", error);
+          alert("❌ Unable to tamper image. Please try again.");
+        }
+      }
+    } else {
+      // View authentic image
+      try {
+        const response = await fetch("/api/ipfs/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ipfsHash }),
+        });
+        const result = await response.json();
+
+        if (result.status === "AUTHENTIC") {
+          window.open(ipfsUrl, "_blank");
+        } else {
+          const viewAnyway = window.confirm(
+            "⚠️ This image has been marked as TAMPERED!\n\nDo you want to view it anyway?"
+          );
+          if (viewAnyway) {
+            window.open(ipfsUrl, "_blank");
+          }
+        }
+      } catch (error) {
+        console.error("Verification failed:", error);
+        window.open(ipfsUrl, "_blank");
+      }
+    }
+  };
+
+  // ...existing helper functions (getRecordTypeIcon, formatDate, etc.)...
   const getRecordTypeIcon = (type) => {
     switch (type) {
       case "prescription":
@@ -133,96 +222,6 @@ const AdminDashboard = () => {
     if (bytes < 1024) return bytes + " B";
     else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
     else return (bytes / 1048576).toFixed(1) + " MB";
-  };
-
-  const openInIPFS = async (ipfsUrl, ipfsHash) => {
-    try {
-      const response = await fetch("/api/ipfs/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ipfsHash }),
-      });
-      const result = await response.json();
-      if (result.status === "AUTHENTIC") {
-        window.open(ipfsUrl, "_blank");
-      } else {
-        alert("Image has been tampered with and is not authentic!");
-      }
-    } catch (error) {
-      console.error("Verification failed:", error);
-      alert("Unable to verify authenticity. Please try again.");
-    }
-  };
-
-  // Open file with admin tampering options
-  const openInIPFSWithTamperOptions = async (ipfsUrl, ipfsHash, recordId) => {
-    const tamperChoice = window.confirm(
-      "Do you want to TAMPER with this image?\n\n" +
-        "Click OK to tamper (rotate/modify)\n" +
-        "Click Cancel to view authentic image"
-    );
-
-    if (tamperChoice) {
-      // Show tampering options
-      const tamperAction = window.prompt(
-        "Choose tampering action:\n" +
-          "1 - Rotate 90°\n" +
-          "2 - Rotate 180°\n" +
-          "3 - Add noise\n" +
-          "4 - Crop image\n\n" +
-          "Enter number (1-4):"
-      );
-
-      if (tamperAction >= 1 && tamperAction <= 4) {
-        try {
-          // Call backend to tamper image
-          const response = await fetch("/api/ipfs/tamper", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              ipfsHash,
-              tamperType: parseInt(tamperAction),
-              recordId,
-            }),
-          });
-
-          const result = await response.json();
-
-          if (result.success) {
-            alert(
-              `✅ Image tampered successfully!\n\nNew IPFS Hash: ${result.newIpfsHash}\n\nUsers will now see this as TAMPERED when they try to view it.`
-            );
-            // Refresh page to show updated record
-            window.location.reload();
-          } else {
-            alert("Failed to tamper image: " + result.error);
-          }
-        } catch (error) {
-          console.error("Tampering failed:", error);
-          alert("Unable to tamper image. Please try again.");
-        }
-      }
-    } else {
-      // View authentic image
-      try {
-        const response = await fetch("/api/ipfs/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ipfsHash }),
-        });
-        const result = await response.json();
-
-        if (result.status === "AUTHENTIC") {
-          window.open(ipfsUrl, "_blank");
-        } else {
-          alert("⚠️ This image has already been tampered with!");
-          window.open(ipfsUrl, "_blank");
-        }
-      } catch (error) {
-        console.error("Verification failed:", error);
-        window.open(ipfsUrl, "_blank");
-      }
-    }
   };
 
   const handleLogout = () => {
@@ -282,7 +281,7 @@ const AdminDashboard = () => {
                 <option value="all">All Users</option>
                 {users.map((user) => (
                   <option key={user} value={user}>
-                    User: {user}
+                    User: {user.substring(0, 20)}...
                   </option>
                 ))}
               </select>
@@ -337,12 +336,19 @@ const AdminDashboard = () => {
                   key={record._id}
                   className={`record-card ${getRecordTypeClass(
                     record.recordType
-                  )}`}
+                  )} ${record.tampered ? "tampered-card" : ""}`}
                 >
                   <div className="record-user-badge">
                     <User size={12} />
-                    <span>{record.patientId}</span>
+                    <span>{record.patientId.substring(0, 20)}...</span>
                   </div>
+
+                  {record.tampered && (
+                    <div className="tampered-badge">
+                      <AlertTriangle size={14} />
+                      <span>TAMPERED</span>
+                    </div>
+                  )}
 
                   <div className="record-type">
                     {getRecordTypeIcon(record.recordType)}
@@ -378,7 +384,9 @@ const AdminDashboard = () => {
                     </span>
                     <div className="record-actions">
                       <button
-                        className="view-ipfs-button"
+                        className={`view-ipfs-button ${
+                          record.tampered ? "tampered-btn" : ""
+                        }`}
                         onClick={() =>
                           openInIPFSWithTamperOptions(
                             record.ipfsUrl,
@@ -389,7 +397,7 @@ const AdminDashboard = () => {
                         title="View or Tamper Image (Admin Only)"
                       >
                         <ExternalLink size={14} />
-                        View/Tamper File
+                        {record.tampered ? "View/Re-Tamper" : "View/Tamper"}
                       </button>
                       <button
                         className="view-details-button"

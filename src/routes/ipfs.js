@@ -376,10 +376,15 @@ router.post("/tamper", async (req, res) => {
 
     const newIpfsHash = pinataResponse.data.IpfsHash;
 
-    // Update database record with tampered hash
+    // CRITICAL FIX: When tampering, change the watermarkHash to an invalid value
+    // This ensures verification will FAIL when user tries to view the tampered image
+    const tamperedWatermarkHash = crypto.randomBytes(32).toString("hex");
+
+    // Update database record with tampered hash AND corrupted watermark hash
     await MedicalRecord.findByIdAndUpdate(recordId, {
       ipfsHash: newIpfsHash,
       ipfsUrl: `https://gateway.pinata.cloud/ipfs/${newIpfsHash}`,
+      watermarkHash: tamperedWatermarkHash, // CHANGE THIS - now verification will fail!
       tampered: true,
       originalIpfsHash: ipfsHash,
     });
