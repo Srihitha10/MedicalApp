@@ -2,10 +2,20 @@ const express = require("express");
 const router = express.Router();
 const MedicalRecord = require("../models/MedicalRecord");
 
-// GET all records
+// GET all records or filter by userId
 router.get("/", async (req, res) => {
   try {
-    const records = await MedicalRecord.find();
+    const { userId } = req.query;
+
+    let records;
+    if (userId) {
+      // Filter by specific user ID
+      records = await MedicalRecord.find({ patientId: userId });
+    } else {
+      // Return all records (for admin)
+      records = await MedicalRecord.find();
+    }
+
     res.json(records);
   } catch (error) {
     console.error("Error fetching records:", error);
@@ -13,7 +23,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET records by patientId
+// GET records by patientId (legacy endpoint)
 router.get("/:patientId", async (req, res) => {
   try {
     const records = await MedicalRecord.find({
@@ -30,19 +40,15 @@ router.get("/:patientId", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     console.log("Request body:", JSON.stringify(req.body, null, 2));
-    console.log("Received record data:", req.body);
 
     if (!req.body) {
       return res.status(400).json({ error: "Request body is empty" });
     }
 
-    // Extract the IPFS hash from the request
     const ipfsHash = req.body.ipfsHash;
-
-    // Generate the IPFS URL based on the hash
     const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
 
-    // Create new medical record with IPFS data
+    // Create new medical record
     const record = new MedicalRecord({
       fileName: req.body.fileName || "Untitled",
       recordType: req.body.recordType || "other",
@@ -51,12 +57,12 @@ router.post("/", async (req, res) => {
       description: req.body.description || "",
       fileSize: req.body.fileSize || 0,
       patientId: req.body.patientId || "default_id",
-      ipfsHash: ipfsHash, // Add this field
-      ipfsUrl: ipfsUrl, // Add this field
-      watermarkHash: req.body.watermarkHash || null, // Add watermark hash for authenticity
+      ipfsHash: ipfsHash,
+      ipfsUrl: ipfsUrl,
+      watermarkHash: req.body.watermarkHash || null,
+      timestamp: req.body.timestamp, // Store the EXACT timestamp used for watermarking
     });
 
-    // Save to database
     const savedRecord = await record.save();
     console.log("Record saved successfully:", savedRecord);
 

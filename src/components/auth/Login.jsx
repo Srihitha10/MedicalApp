@@ -9,6 +9,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isAdminLogin, setIsAdminLogin] = useState(false);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -20,23 +21,38 @@ const Login = () => {
 
     try {
       // Simulate API call for login
-      // In a real app, this would be an actual API call to your backend
       setTimeout(() => {
-        // Mock successful login
-        const userData = {
-          id: "user123",
-          email: email,
-          displayName: email.split("@")[0],
-        };
+        // Admin credentials (for demo purposes)
+        const adminEmail = "admin@medsecure.com";
+        const adminPassword = "admin123";
 
-        // Update auth context and local storage
-        login(userData);
-
-        // Show success message
-        toast.success("Login successful!");
-
-        // Redirect to dashboard
-        navigate("/dashboard");
+        // Check if admin login
+        if (isAdminLogin) {
+          if (email === adminEmail && password === adminPassword) {
+            const userData = {
+              _id: "admin001", // Changed from id to _id
+              email: email,
+              displayName: "Admin",
+              role: "admin",
+            };
+            login(userData);
+            toast.success("Admin login successful!");
+            navigate("/admin-dashboard");
+          } else {
+            setError("Invalid admin credentials.");
+          }
+        } else {
+          // Regular user login
+          const userData = {
+            _id: "user_" + Date.now(), // Changed from id to _id
+            email: email,
+            displayName: email.split("@")[0],
+            role: "user",
+          };
+          login(userData);
+          toast.success("Login successful!");
+          navigate("/dashboard");
+        }
       }, 1000);
     } catch (error) {
       setError("Failed to sign in. Please check your credentials.");
@@ -50,7 +66,33 @@ const Login = () => {
     <div className="login-container">
       <div className="login-card">
         <h2>Sign In to Your Account</h2>
+
+        <div className="login-type-toggle">
+          <button
+            className={`toggle-btn ${!isAdminLogin ? "active" : ""}`}
+            onClick={() => setIsAdminLogin(false)}
+            type="button"
+          >
+            User Login
+          </button>
+          <button
+            className={`toggle-btn ${isAdminLogin ? "active" : ""}`}
+            onClick={() => setIsAdminLogin(true)}
+            type="button"
+          >
+            Admin Login
+          </button>
+        </div>
+
         {error && <div className="error-message">{error}</div>}
+
+        {isAdminLogin && (
+          <div className="info-message">
+            <strong>Demo Admin Credentials:</strong>
+            <p>Email: admin@medsecure.com</p>
+            <p>Password: admin123</p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">

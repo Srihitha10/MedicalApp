@@ -28,6 +28,7 @@ import MedicalRecordsPage from "./pages/MedicalRecordsPage";
 import UploadRecordsPage from "./pages/UploadRecordsPage";
 import AccessManagement from "./components/dashboard/AccessManagement";
 import Notifications from "./components/dashboard/Notifications";
+import AdminDashboard from "./pages/AdminDashboard"; // Add this import
 
 function App() {
   return (
@@ -82,6 +83,16 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Notifications />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Admin Route */}
+              <Route
+                path="/admin-dashboard"
+                element={
+                  <ProtectedRoute>
+                    <AdminDashboard />
                   </ProtectedRoute>
                 }
               />

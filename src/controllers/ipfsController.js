@@ -5,13 +5,34 @@ export const uploadToIPFS = async (file, metadata = {}) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  // Add metadata to request if provided
-  if (Object.keys(metadata).length > 0) {
-    formData.append("metadata", JSON.stringify(metadata));
+  // Ensure patientId and timestamp are included in metadata
+  if (!metadata.patientId) {
+    throw new Error("Patient ID is required");
   }
+  if (!metadata.timestamp) {
+    throw new Error("Timestamp is required");
+  }
+
+  // Add metadata to request - IMPORTANT: must include patientId and timestamp
+  console.log("Sending metadata:", metadata);
+  formData.append(
+    "metadata",
+    JSON.stringify({
+      patientId: metadata.patientId,
+      timestamp: metadata.timestamp,
+      fileName: metadata.fileName,
+      recordType: metadata.recordType,
+      doctorName: metadata.doctorName,
+      description: metadata.description,
+    })
+  );
 
   try {
     console.log("Uploading file to IPFS via backend API...");
+    console.log("Metadata being sent:", {
+      patientId: metadata.patientId,
+      timestamp: metadata.timestamp,
+    });
 
     // Make request to our backend API
     const response = await axios.post(
@@ -39,6 +60,7 @@ export const uploadToIPFS = async (file, metadata = {}) => {
       status: error.response?.status,
       statusText: error.response?.statusText,
       message: error.response?.data?.error || error.message,
+      data: error.response?.data,
     });
 
     throw new Error(

@@ -47,8 +47,20 @@ const medicalRecordSchema = new mongoose.Schema({
   },
   watermarkHash: {
     type: String,
-    required: true, // For authenticity checks
+    required: true,
   },
+
+  // CRITICAL: Store the EXACT timestamp used for watermarking
+  timestamp: {
+    type: String, // Store as string to preserve exact format
+    required: true,
+  },
+
+  tampered: {
+    type: Boolean,
+    default: false,
+  },
+  originalIpfsHash: String,
 });
 
 module.exports = mongoose.model("MedicalRecord", medicalRecordSchema);

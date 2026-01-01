@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import {
   FileText,
   FileImage,
@@ -18,9 +19,17 @@ import "./MedicalRecordsPage.css";
 
 const MedicalRecordsPage = () => {
   const navigate = useNavigate();
+  const { currentUser, isAdmin, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [records, setRecords] = useState([]);
+
+  // Redirect admin to admin dashboard
+  useEffect(() => {
+    if (isAdmin) {
+      navigate("/admin-dashboard");
+    }
+  }, [isAdmin, navigate]);
 
   const handleUploadClick = () => {
     navigate("/upload-records");
@@ -35,13 +44,21 @@ const MedicalRecordsPage = () => {
     const fetchRecords = async () => {
       try {
         setLoading(true);
-        const response = await fetch("/api/records");
+
+        // Get user ID from multiple possible locations
+        const userId = currentUser?._id || currentUser?.id;
+
+        console.log("Fetching records for user ID:", userId);
+
+        // Filter by current user ID
+        const response = await fetch(`/api/records?userId=${userId}`);
 
         if (!response.ok) {
           throw new Error("Failed to fetch records");
         }
 
         const data = await response.json();
+        console.log("Fetched records:", data);
         setRecords(data);
         setLoading(false);
       } catch (err) {
@@ -51,8 +68,20 @@ const MedicalRecordsPage = () => {
       }
     };
 
+    if (authLoading) {
+      return;
+    }
+
+    const userId = currentUser?._id || currentUser?.id;
+    if (!currentUser || !userId) {
+      setLoading(false);
+      setRecords([]);
+      setError("No user session. Please login.");
+      return;
+    }
+
     fetchRecords();
-  }, []);
+  }, [currentUser, authLoading]);
 
   const [viewMode, setViewMode] = useState("grid");
   const [searchTerm, setSearchTerm] = useState("");
@@ -146,6 +175,15 @@ const MedicalRecordsPage = () => {
       alert("Unable to verify authenticity. Please try again.");
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="loading-container">
+        <div className="loader"></div>
+        <p>Loading session...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">

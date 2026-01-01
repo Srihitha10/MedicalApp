@@ -28,11 +28,18 @@ const UploadRecordsPage = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [doctorName, setDoctorName] = useState("");
-  const [patientId, setPatientId] = useState(""); // Add for watermarking
+  const [patientId, setPatientId] = useState(""); // This will be auto-filled
   const [timestamp, setTimestamp] = useState(""); // Add for watermarking
 
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth(); // include loading
   const navigate = useNavigate();
+
+  // Auto-fill patientId with current user's ID on mount
+  useEffect(() => {
+    if (!authLoading && currentUser?._id) {
+      setPatientId(currentUser._id);
+    }
+  }, [authLoading, currentUser]);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -99,12 +106,27 @@ const UploadRecordsPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (authLoading) {
+      setError("Please wait until your session is ready.");
+      return;
+    }
+
+    // Check for user ID in multiple possible locations
+    const userId = currentUser?._id || currentUser?.id;
+
+    if (!currentUser || !userId) {
+      setError("User ID not found. Please logout and login again.");
+      console.error("Current user object:", currentUser);
+      return;
+    }
+
     if (!file) {
       setError("Please select a file to upload");
       return;
     }
-    if (!patientId || !timestamp) {
-      setError("Patient ID and timestamp are required for watermarking");
+    if (!timestamp) {
+      setError("Timestamp is required for watermarking");
       return;
     }
 
@@ -112,7 +134,9 @@ const UploadRecordsPage = () => {
     setError("");
 
     try {
-      console.log("Starting upload process..."); // Debug log
+      console.log("Starting upload process...");
+      console.log("Patient ID:", userId);
+      console.log("Timestamp:", timestamp);
 
       // Upload file to IPFS with metadata
       const uploadResult = await uploadToIPFS(file, {
@@ -120,12 +144,14 @@ const UploadRecordsPage = () => {
         recordType,
         doctorName,
         description,
-        patientId, // Include for watermarking
-        timestamp, // Include for watermarking
+        patientId: userId,
+        timestamp, // Send exact timestamp
       });
-      const { ipfsHash, watermarkHash } = uploadResult; // Assume controller returns both
 
-      // Create record data with watermarkHash
+      console.log("Upload result:", uploadResult);
+      const { ipfsHash, watermarkHash } = uploadResult;
+
+      // Create record data
       const recordData = {
         fileName,
         recordType,
@@ -133,8 +159,9 @@ const UploadRecordsPage = () => {
         description,
         fileSize: file.size,
         ipfsHash,
-        watermarkHash, // Add for DB storage
-        patientId: currentUser?._id || patientId, // Use input or user ID
+        watermarkHash,
+        patientId: userId,
+        timestamp, // Store EXACT timestamp for later verification
         uploadDate: new Date().toISOString(),
       };
 
@@ -162,7 +189,7 @@ const UploadRecordsPage = () => {
         }, 2000);
       }, 3000);
     } catch (error) {
-      console.error("Upload error:", error); // Debug log
+      console.error("Upload error:", error);
       setError(error.message || "Failed to upload record. Please try again.");
       setIsUploading(false);
     }
@@ -204,6 +231,17 @@ const UploadRecordsPage = () => {
   };
 
   const uploadStage = getUploadStage();
+
+  if (authLoading) {
+    return (
+      <div className="upload-container">
+        <div className="loading-container">
+          <div className="loader"></div>
+          <p>Preparing your session...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="upload-container">
@@ -247,20 +285,8 @@ const UploadRecordsPage = () => {
 
           <form onSubmit={handleSubmit}>
             <div className="form-grid">
-              <div className="form-group">
-                <label className="form-label" htmlFor="patientId">
-                  Patient ID <span className="required">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="patientId"
-                  className="form-input"
-                  value={patientId}
-                  onChange={(e) => setPatientId(e.target.value)}
-                  placeholder="Enter patient ID"
-                  required
-                />
-              </div>
+              {/* HIDDEN PATIENT ID INPUT */}
+              <input type="hidden" value={patientId} />
 
               <div className="form-group">
                 <label className="form-label" htmlFor="timestamp">
