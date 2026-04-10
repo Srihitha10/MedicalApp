@@ -21,7 +21,7 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  }),
 );
 
 // Enhanced Debug Middleware with more detailed logging
@@ -37,7 +37,7 @@ app.use((req, res, next) => {
     console.log(
       `📤 Response body: ${
         typeof data === "object" ? JSON.stringify(data, null, 2) : data
-      }`
+      }`,
     );
     return originalSend.apply(this, arguments);
   };
@@ -65,6 +65,7 @@ mongoose
 app.use("/api/records", require("./src/routes/records"));
 app.use("/api/users", require("./src/routes/users"));
 app.use("/api/ipfs", require("./src/routes/ipfs")); // MAKE SURE THIS LINE EXISTS
+app.use("/api/access", require("./src/routes/access"));
 
 // Test route to verify server is working
 app.get("/", (req, res) => {

@@ -142,7 +142,9 @@
 
 .strength-meter-fill {
   height: 100%;
-  transition: width 0.3s, background-color 0.3s;
+  transition:
+    width 0.3s,
+    background-color 0.3s;
 }
 
 .strength-text {
@@ -326,6 +328,79 @@
   text-decoration: underline;
 }
 
+/* Role Selection Styles */
+.role-selection {
+  text-align: center;
+  padding: 30px 0;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 30px;
+}
+
+.role-prompt {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 24px;
+}
+
+.role-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.role-btn {
+  padding: 16px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.role-btn:hover {
+  border-color: #2196f3;
+  background-color: #f0f7ff;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.15);
+}
+
+.patient-btn:active {
+  border-color: #2196f3;
+  background-color: #2196f3;
+  color: white;
+}
+
+.doctor-btn:active {
+  border-color: #2196f3;
+  background-color: #2196f3;
+  color: white;
+}
+
+.change-role-btn {
+  display: inline-block;
+  background: none;
+  border: none;
+  color: #2196f3;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 12px;
+  margin-bottom: 16px;
+  transition: color 0.3s;
+}
+
+.change-role-btn:hover {
+  color: #1976d2;
+  text-decoration: underline;
+}
+
 /* Animation styles */
 @keyframes fadeIn {
   from {
@@ -348,7 +423,9 @@
 }
 
 .signup-modal {
-  animation: fadeIn 0.3s ease, slideUp 0.4s ease;
+  animation:
+    fadeIn 0.3s ease,
+    slideUp 0.4s ease;
 }
 
 /* Responsive styling */

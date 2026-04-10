@@ -10,6 +10,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isAdminLogin, setIsAdminLogin] = useState(false);
+  const [isDoctorLogin, setIsDoctorLogin] = useState(false);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -20,40 +21,62 @@ const Login = () => {
     setLoading(true);
 
     try {
-      setTimeout(() => {
-        const adminEmail = "admin@medsecure.com";
-        const adminPassword = "admin123";
+      const adminEmail = "admin@medsecure.com";
+      const adminPassword = "admin123";
 
-        if (isAdminLogin) {
-          if (email === adminEmail && password === adminPassword) {
-            const userData = {
-              _id: "admin001",
-              email: email,
-              displayName: "Admin",
-              role: "admin",
-            };
-            login(userData);
-            toast.success("Admin login successful!");
-            navigate("/admin-dashboard");
-          } else {
-            setError("Invalid admin credentials.");
-          }
-        } else {
-          // Regular user login - USE EMAIL AS CONSISTENT ID
-          const userId = "user_" + email.replace(/[^a-z0-9]/gi, "_"); // Consistent ID based on email
+      if (isAdminLogin) {
+        if (email === adminEmail && password === adminPassword) {
           const userData = {
-            _id: userId,
+            _id: "admin001",
+            patientId: "0000",
             email: email,
-            displayName: email.split("@")[0],
-            role: "user",
+            displayName: "Admin",
+            role: "admin",
           };
           login(userData);
-          toast.success("Login successful!");
-          navigate("/dashboard");
+          toast.success("Admin login successful!");
+          navigate("/admin-dashboard");
+        } else {
+          setError("Invalid admin credentials.");
         }
-      }, 1000);
+        return;
+      }
+
+      const expectedRole = isDoctorLogin ? "doctor" : "user";
+      const response = await fetch("http://localhost:5000/api/users/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          expectedRole,
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || "Login failed");
+      }
+
+      const userData = {
+        _id: payload.patientId,
+        dbUserId: payload._id,
+        patientId: payload.patientId,
+        doctorPublicId: payload.doctorPublicId,
+        email: payload.email,
+        displayName: payload.name,
+        role: payload.role,
+      };
+
+      login(userData);
+      toast.success("Login successful!");
+      navigate(isDoctorLogin ? "/doctor-dashboard" : "/dashboard");
     } catch (error) {
-      setError("Failed to sign in. Please check your credentials.");
+      setError(
+        error.message || "Failed to sign in. Please check your credentials.",
+      );
       toast.error("Login failed. Please try again.");
     } finally {
       setLoading(false);
@@ -67,18 +90,36 @@ const Login = () => {
 
         <div className="login-type-toggle">
           <button
-            className={`toggle-btn ${!isAdminLogin ? "active" : ""}`}
-            onClick={() => setIsAdminLogin(false)}
+            className={`toggle-btn ${
+              !isAdminLogin && !isDoctorLogin ? "active" : ""
+            }`}
+            onClick={() => {
+              setIsAdminLogin(false);
+              setIsDoctorLogin(false);
+            }}
             type="button"
           >
             User Login
           </button>
           <button
             className={`toggle-btn ${isAdminLogin ? "active" : ""}`}
-            onClick={() => setIsAdminLogin(true)}
+            onClick={() => {
+              setIsAdminLogin(true);
+              setIsDoctorLogin(false);
+            }}
             type="button"
           >
             Admin Login
+          </button>
+          <button
+            className={`toggle-btn ${isDoctorLogin ? "active" : ""}`}
+            onClick={() => {
+              setIsDoctorLogin(true);
+              setIsAdminLogin(false);
+            }}
+            type="button"
+          >
+            Doctor Login
           </button>
         </div>
 
@@ -89,6 +130,13 @@ const Login = () => {
             <strong>Demo Admin Credentials:</strong>
             <p>Email: admin@medsecure.com</p>
             <p>Password: admin123</p>
+          </div>
+        )}
+
+        {isDoctorLogin && (
+          <div className="info-message">
+            <strong>Doctor Login:</strong>
+            <p>Use a registered doctor account email and password.</p>
           </div>
         )}
 

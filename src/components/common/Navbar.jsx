@@ -114,13 +114,19 @@ const Navbar = () => {
             <>
               <li className="nav-item">
                 <Link
-                  to="/dashboard"
+                  to={
+                    currentUser?.role === "doctor"
+                      ? "/doctor-dashboard"
+                      : "/dashboard"
+                  }
                   className={`nav-link ${
-                    isActive("/dashboard") ? "active" : ""
+                    isActive("/dashboard") || isActive("/doctor-dashboard")
+                      ? "active"
+                      : ""
                   }`}
                   onClick={closeMenu}
                 >
-                  Dashboard
+                  {currentUser?.role === "doctor" ? "Doctor" : "Dashboard"}
                 </Link>
               </li>
               <li className="nav-item">
@@ -155,12 +161,21 @@ const Navbar = () => {
                       Profile
                     </Link>
                     <Link
-                      to="/dashboard/records"
+                      to="/medical-records"
                       className="dropdown-item"
                       onClick={closeMenu}
                     >
                       My Records
                     </Link>
+                    {currentUser?.role === "doctor" && (
+                      <Link
+                        to="/doctor-dashboard"
+                        className="dropdown-item"
+                        onClick={closeMenu}
+                      >
+                        Emergency Access
+                      </Link>
+                    )}
                     <Link
                       to="/dashboard/access"
                       className="dropdown-item"

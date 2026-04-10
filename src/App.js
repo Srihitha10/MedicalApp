@@ -29,6 +29,7 @@ import UploadRecordsPage from "./pages/UploadRecordsPage";
 import AccessManagement from "./components/dashboard/AccessManagement";
 import Notifications from "./components/dashboard/Notifications";
 import AdminDashboard from "./pages/AdminDashboard"; // Add this import
+import DoctorDashboard from "./pages/DoctorDashboard";
 
 function App() {
   return (
@@ -93,6 +94,15 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/doctor-dashboard"
+                element={
+                  <ProtectedRoute>
+                    <DoctorDashboard />
                   </ProtectedRoute>
                 }
               />

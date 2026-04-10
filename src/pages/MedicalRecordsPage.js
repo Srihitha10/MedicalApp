@@ -12,7 +12,6 @@ import {
   List,
   Grid,
   ExternalLink,
-  Clock,
   User,
 } from "lucide-react";
 import "./MedicalRecordsPage.css";
@@ -23,20 +22,22 @@ const MedicalRecordsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [records, setRecords] = useState([]);
+  const [sharedGrants, setSharedGrants] = useState([]);
+  const [recordScope, setRecordScope] = useState("own");
+  const [selectedSharedPatient, setSelectedSharedPatient] = useState("");
 
   // Redirect admin to admin dashboard
   useEffect(() => {
     if (isAdmin) {
       navigate("/admin-dashboard");
     }
-  }, [isAdmin, navigate]);
+    if (currentUser?.role === "doctor") {
+      navigate("/doctor-dashboard");
+    }
+  }, [isAdmin, navigate, currentUser?.role]);
 
   const handleUploadClick = () => {
     navigate("/upload-records");
-  };
-
-  const handleHomeClick = () => {
-    navigate("/dashboard");
   };
 
   // Fetch records from the backend API
@@ -57,8 +58,21 @@ const MedicalRecordsPage = () => {
 
         console.log("Fetching records for user ID:", userId);
 
-        // Filter by current user ID
-        const response = await fetch(`/api/records?userId=${userId}`);
+        let response;
+        if (recordScope === "own") {
+          response = await fetch(`/api/records?userId=${userId}`);
+        } else {
+          const params = new URLSearchParams({
+            requesterId: userId,
+            requesterRole: currentUser?.role || "user",
+          });
+
+          response = await fetch(
+            `/api/access/patients/${encodeURIComponent(
+              selectedSharedPatient,
+            )}/records?${params.toString()}`,
+          );
+        }
 
         if (!response.ok) {
           throw new Error("Failed to fetch records");
@@ -66,12 +80,38 @@ const MedicalRecordsPage = () => {
 
         const data = await response.json();
         console.log("Fetched records:", data);
-        setRecords(data);
+        setRecords(recordScope === "own" ? data : data.records || []);
         setLoading(false);
       } catch (err) {
         console.error("Error fetching records:", err);
         setError(err.message);
         setLoading(false);
+      }
+    };
+
+    const fetchSharedGrants = async () => {
+      try {
+        const userId = currentUser?._id || currentUser?.id;
+        if (!userId) {
+          setSharedGrants([]);
+          return;
+        }
+
+        const response = await fetch(
+          `/api/access/grants/for?granteePatientId=${encodeURIComponent(userId)}`,
+        );
+        if (!response.ok) {
+          setSharedGrants([]);
+          return;
+        }
+
+        const grants = await response.json();
+        const nonSelfGrants = (grants || []).filter(
+          (grant) => grant.patientId !== userId,
+        );
+        setSharedGrants(nonSelfGrants);
+      } catch (fetchError) {
+        console.error("Failed to fetch shared grants:", fetchError);
       }
     };
 
@@ -88,8 +128,22 @@ const MedicalRecordsPage = () => {
       return;
     }
 
+    fetchSharedGrants();
+
+    if (recordScope === "shared" && !selectedSharedPatient) {
+      setLoading(false);
+      setRecords([]);
+      return;
+    }
+
     fetchRecords();
-  }, [currentUser, authLoading]);
+  }, [
+    currentUser,
+    authLoading,
+    recordScope,
+    selectedSharedPatient,
+    currentUser?.role,
+  ]);
 
   const [viewMode, setViewMode] = useState("grid");
   const [searchTerm, setSearchTerm] = useState("");
@@ -244,6 +298,38 @@ const MedicalRecordsPage = () => {
           </div>
 
           <div className="upload-button-container">
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="view-details-button"
+                onClick={() => setRecordScope("own")}
+              >
+                My Records
+              </button>
+              <button
+                type="button"
+                className="view-details-button"
+                onClick={() => setRecordScope("shared")}
+                disabled={sharedGrants.length === 0}
+              >
+                Shared With Me
+              </button>
+              {recordScope === "shared" && sharedGrants.length > 0 && (
+                <select
+                  className="filter-select"
+                  value={selectedSharedPatient}
+                  onChange={(e) => setSelectedSharedPatient(e.target.value)}
+                >
+                  <option value="">Select shared patient</option>
+                  {sharedGrants.map((grant) => (
+                    <option key={grant._id} value={grant.patientId}>
+                      {grant.patientId} ({grant.relationship})
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
             <button className="upload-record-btn" onClick={handleUploadClick}>
               <Plus size={16} />
               Upload New Record
@@ -286,7 +372,7 @@ const MedicalRecordsPage = () => {
                 <div
                   key={record._id}
                   className={`record-card ${getRecordTypeClass(
-                    record.recordType
+                    record.recordType,
                   )}`}
                 >
                   <div className="record-type">
@@ -304,7 +390,7 @@ const MedicalRecordsPage = () => {
                       <Calendar size={12} />
                       <span>
                         {formatDate(
-                          record.date || record.uploadDate || record.createdAt
+                          record.date || record.uploadDate || record.createdAt,
                         )}
                       </span>
                     </div>

@@ -2,6 +2,88 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 
+const generateUniquePatientId = async () => {
+  const [highestPatient] = await User.aggregate([
+    {
+      $match: {
+        patientId: { $exists: true, $ne: null },
+      },
+    },
+    {
+      $addFields: {
+        patientIdNumber: { $toInt: "$patientId" },
+      },
+    },
+    {
+      $sort: { patientIdNumber: -1 },
+    },
+    {
+      $limit: 1,
+    },
+    {
+      $project: { patientId: 1, patientIdNumber: 1 },
+    },
+  ]);
+
+  if (!highestPatient?.patientId) {
+    return "1000";
+  }
+
+  const maxId = Number.parseInt(
+    highestPatient.patientIdNumber ?? highestPatient.patientId,
+    10,
+  );
+  if (!Number.isFinite(maxId) || maxId < 1000) {
+    return "1000";
+  }
+
+  return String(maxId + 1);
+};
+
+const generateUniqueDoctorPublicId = async () => {
+  const [highestDoctor] = await User.aggregate([
+    {
+      $match: {
+        doctorPublicId: { $exists: true, $ne: null, $regex: /^D\d+$/ },
+      },
+    },
+    {
+      $addFields: {
+        doctorPublicIdNumber: {
+          $toInt: {
+            $substrCP: ["$doctorPublicId", 1, { $strLenCP: "$doctorPublicId" }],
+          },
+        },
+      },
+    },
+    {
+      $sort: { doctorPublicIdNumber: -1 },
+    },
+    {
+      $limit: 1,
+    },
+    {
+      $project: { doctorPublicId: 1, doctorPublicIdNumber: 1 },
+    },
+  ]);
+
+  if (!highestDoctor?.doctorPublicId) {
+    return "D1000";
+  }
+
+  const maxId = Number.parseInt(
+    highestDoctor.doctorPublicIdNumber ??
+      String(highestDoctor.doctorPublicId).slice(1),
+    10,
+  );
+
+  if (!Number.isFinite(maxId) || maxId < 1000) {
+    return "D1000";
+  }
+
+  return `D${maxId + 1}`;
+};
+
 // Get all users
 router.get("/", async (req, res) => {
   try {
@@ -20,7 +102,7 @@ router.post("/", async (req, res) => {
   try {
     console.log(
       "📝 Creating user with data:",
-      JSON.stringify(req.body, null, 2)
+      JSON.stringify(req.body, null, 2),
     );
 
     if (!req.body) {
@@ -28,7 +110,7 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Request body is missing" });
     }
 
-    const { name, email, password } = req.body;
+    const { name, email, password, role, hospitalName, doctorID } = req.body;
 
     // Check for required fields
     if (!name) {
@@ -44,6 +126,20 @@ router.post("/", async (req, res) => {
     if (!password) {
       console.error("❌ Password is required");
       return res.status(400).json({ error: "Password is required" });
+    }
+
+    // Doctor-specific validation
+    if (role === "doctor") {
+      if (!hospitalName) {
+        console.error("❌ Hospital name is required for doctors");
+        return res
+          .status(400)
+          .json({ error: "Hospital name is required for doctors" });
+      }
+      if (!doctorID) {
+        console.error("❌ Doctor ID is required");
+        return res.status(400).json({ error: "Doctor ID is required" });
+      }
     }
 
     console.log("🔍 Checking if user already exists...");
@@ -63,11 +159,18 @@ router.post("/", async (req, res) => {
 
     console.log("✅ Validation passed, creating new user...");
 
+    const patientId = await generateUniquePatientId();
+    const doctorPublicId =
+      role === "doctor" ? await generateUniqueDoctorPublicId() : null;
+
     // Create new user with the required fields
     const newUser = new User({
       name,
       email,
       password,
+      patientId,
+      role: role || "user",
+      ...(role === "doctor" && { hospitalName, doctorID, doctorPublicId }),
     });
 
     // Save user to database
@@ -84,6 +187,46 @@ router.post("/", async (req, res) => {
     console.error("❌ Error creating user:", error);
     console.error("❌ Error name:", error.name);
     console.error("❌ Error code:", error.code);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Login using registered account details
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password, expectedRole } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user || user.password !== password) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    if (!user.patientId) {
+      user.patientId = await generateUniquePatientId();
+      await user.save();
+    }
+
+    if (user.role === "doctor" && !user.doctorPublicId) {
+      user.doctorPublicId = await generateUniqueDoctorPublicId();
+      await user.save();
+    }
+
+    if (expectedRole && user.role !== expectedRole) {
+      return res
+        .status(403)
+        .json({ error: `This account is not a ${expectedRole}` });
+    }
+
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    res.json(userResponse);
+  } catch (error) {
+    console.error("❌ Error during login:", error);
     res.status(500).json({ error: error.message });
   }
 });

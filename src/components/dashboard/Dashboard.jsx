@@ -7,37 +7,55 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const [activeFeature, setActiveFeature] = useState("dashboard");
+  const isDoctor = currentUser?.role === "doctor";
 
-  const features = [
-    {
-      id: "records",
-      title: "Medical Records",
-      description: "View and manage your medical documents",
-      path: "/medical-records",
-      icon: "records-icon",
-    },
-    {
-      id: "upload",
-      title: "Upload Records",
-      description: "Securely upload new medical files",
-      path: "/upload-records",
-      icon: "upload-icon",
-    },
-    {
-      id: "access",
-      title: "Access Management",
-      description: "Control who can access your records",
-      path: "/access-management",
-      icon: "access-icon",
-    },
-    {
-      id: "notifications",
-      title: "Notifications",
-      description: "View alerts and access history",
-      path: "/notifications",
-      icon: "notification-icon",
-    },
-  ];
+  const features = isDoctor
+    ? [
+        {
+          id: "doctorAccess",
+          title: "Doctor Access",
+          description: "Emergency and granted access to patient records",
+          path: "/doctor-dashboard",
+          icon: "access-icon",
+        },
+        {
+          id: "records",
+          title: "Shared Medical Records",
+          description: "View records shared with your account",
+          path: "/medical-records",
+          icon: "records-icon",
+        },
+      ]
+    : [
+        {
+          id: "records",
+          title: "Medical Records",
+          description: "View and manage your medical documents",
+          path: "/medical-records",
+          icon: "records-icon",
+        },
+        {
+          id: "upload",
+          title: "Upload Records",
+          description: "Securely upload new medical files",
+          path: "/upload-records",
+          icon: "upload-icon",
+        },
+        {
+          id: "access",
+          title: "Access Management",
+          description: "Control who can access your records",
+          path: "/access-management",
+          icon: "access-icon",
+        },
+        {
+          id: "notifications",
+          title: "Notifications",
+          description: "View alerts and access history",
+          path: "/notifications",
+          icon: "notification-icon",
+        },
+      ];
 
   const handleFeatureClick = (path, id) => {
     setActiveFeature(id);
@@ -50,6 +68,12 @@ const Dashboard = () => {
         <div className="header-content">
           <h1>Welcome, {currentUser?.displayName || "User"}</h1>
           <p>Manage your medical records securely</p>
+          {currentUser?.role !== "admin" && (
+            <p>Your Patient ID: {currentUser?._id || "N/A"}</p>
+          )}
+          {currentUser?.role === "doctor" && currentUser?.doctorPublicId && (
+            <p>Your Doctor ID: {currentUser.doctorPublicId}</p>
+          )}
         </div>
       </header>
 
